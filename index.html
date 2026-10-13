@@ -1,0 +1,386 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dress Up Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+/* Layout: character stage on the left, tabbed clothing catalog on the right; stacks (stage on top) on phones. */
+:root{
+  --bg:#f1eefb; --panel:#ffffff; --fg:#1f1a33; --muted:#6a6485; --line:#ddd7f0;
+  --accent:#6a49f2; --accent-fg:#ffffff; --tile:#f5f2fd; --tile-hover:#ece7fb;
+  --font-display:'Fredoka',ui-rounded,system-ui,sans-serif;
+  --font-body:'Nunito',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --stage:linear-gradient(160deg,#ffd9e8,#cdb8ff);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#141220; --panel:#1e1b30; --fg:#f1eefc; --muted:#a8a2c6; --line:#342f4f;
+    --accent:#a18bff; --accent-fg:#16112e; --tile:#28243f; --tile-hover:#322d4e; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141220; --panel:#1e1b30; --fg:#f1eefc; --muted:#a8a2c6; --line:#342f4f;
+  --accent:#a18bff; --accent-fg:#16112e; --tile:#28243f; --tile-hover:#322d4e; color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font:600 15px/1.4 var(--font-body);overflow-x:hidden}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+.app{height:100%;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,440px);gap:16px;padding:16px}
+.stage-wrap{display:flex;flex-direction:column;gap:12px;min-height:0;min-width:0}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+h1{margin:0;font:600 28px/1.1 var(--font-display);letter-spacing:.2px;text-wrap:balance}
+.actions{display:flex;gap:8px}
+.btn{padding:9px 16px;border-radius:12px;border:1px solid var(--line);background:var(--panel);cursor:pointer;font-weight:800}
+.btn:hover{background:var(--tile-hover)}
+.btn.primary{background:var(--accent);color:var(--accent-fg);border-color:transparent}
+.btn.primary:hover{filter:brightness(1.08)}
+
+.stage{flex:1;min-height:0;border-radius:24px;background:var(--stage);overflow:hidden;position:relative;transition:background .3s}
+.stage svg{width:100%;height:100%;display:block}
+.stage .hint{position:absolute;left:14px;bottom:12px;margin:0;padding:5px 10px;border-radius:999px;background:rgba(255,255,255,.72);color:#2a2540;font-size:13px;font-weight:700;max-width:calc(100% - 28px)}
+#fig{animation:bob 3.2s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+@media (prefers-reduced-motion: reduce){#fig{animation:none}.stage{transition:none}}
+
+.catalog{display:flex;flex-direction:column;min-height:0;min-width:0;background:var(--panel);border:1px solid var(--line);border-radius:24px;overflow:hidden}
+.tabs{display:flex;gap:6px;padding:12px;overflow-x:auto;border-bottom:1px solid var(--line);scrollbar-width:thin;flex:none}
+.tab{flex:none;padding:8px 14px;border:0;border-radius:999px;background:transparent;color:var(--muted);font-weight:800;cursor:pointer}
+.tab:hover{background:var(--tile)}
+.tab[aria-selected="true"]{background:var(--accent);color:var(--accent-fg)}
+.panel{flex:1;min-height:0;overflow-y:auto;padding:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:10px}
+.tile{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 6px 6px;border:2px solid transparent;border-radius:16px;background:var(--tile);cursor:pointer;min-width:0}
+.tile:hover{background:var(--tile-hover)}
+.tile[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 25%,transparent)}
+.tile svg{width:100%;height:auto;display:block;aspect-ratio:var(--ar);max-height:150px}
+.tile .nm{font-size:13px;font-weight:800;text-align:center;overflow-wrap:anywhere}
+.tile.none .blank{width:100%;aspect-ratio:var(--ar);max-height:150px;display:grid;place-items:center;color:var(--muted);font-size:30px;font-weight:700}
+
+.colors{flex:none;display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 14px;border-top:1px solid var(--line)}
+.label{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.swatches{display:flex;gap:8px;flex-wrap:wrap}
+.sw{width:30px;height:30px;border-radius:50%;border:2px solid var(--line);cursor:pointer;padding:0}
+.sw[aria-pressed="true"]{outline:3px solid var(--accent);outline-offset:2px}
+.sw.big{width:46px;height:46px}
+.sw.bg{width:62px;height:46px;border-radius:14px}
+.look-block{display:flex;flex-direction:column;gap:10px;margin-bottom:22px}
+
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+@media (max-width:860px){
+  .app{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,44%) minmax(0,1fr);gap:10px;padding:12px 16px}
+  h1{font-size:22px}
+  .btn{padding:7px 12px}
+  .stage .hint{display:none}
+  .grid{grid-template-columns:repeat(auto-fill,minmax(88px,1fr))}
+}
+</style>
+
+<div class="app">
+  <section class="stage-wrap">
+    <header class="top">
+      <h1>Dress Up Studio</h1>
+      <div class="actions">
+        <button class="btn primary" id="random" type="button">Surprise me</button>
+        <button class="btn" id="reset" type="button">Reset</button>
+      </div>
+    </header>
+    <div class="stage" id="stage">
+      <svg viewBox="0 0 300 545" role="img" aria-label="Your character" xmlns="http://www.w3.org/2000/svg">
+        <ellipse cx="150" cy="531" rx="84" ry="8" fill="#000" opacity=".14"/>
+        <g id="fig"></g>
+      </svg>
+      <p class="hint" id="hint">Pick items from the catalog to dress your character.</p>
+    </div>
+  </section>
+
+  <aside class="catalog" aria-label="Clothing catalog">
+    <div class="tabs" id="tabs" role="tablist" aria-label="Catalog categories"></div>
+    <div class="panel" id="panel" role="tabpanel"></div>
+    <div class="colors" id="colors"></div>
+  </aside>
+</div>
+<div class="sr" id="status" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+'use strict';
+
+/* ---------- palettes ---------- */
+const SKINS=['#fbe0cf','#f1c5a3','#d9a074','#b97a50','#8a5636','#5e3a24'];
+const BACKDROPS=[
+  'linear-gradient(160deg,#ffd9e8,#cdb8ff)',
+  'linear-gradient(160deg,#bdf0e4,#a8d8ff)',
+  'linear-gradient(160deg,#ffe9b5,#ffc2a1)',
+  'linear-gradient(160deg,#2b2750,#5a49a8)',
+  'linear-gradient(160deg,#eef0f6,#cfd5e6)'
+];
+const HAIRC=['#2b1d16','#5a3825','#8b5a2b','#d9a441','#c0392b','#e6e1d6','#7c4dff','#ff6fb1','#2fb8c4'];
+const CLOTHC=['#ef476f','#ff9f1c','#ffd166','#06d6a0','#118ab2','#7c5cff','#f78fb3','#2d2f3e','#ffffff','#a0664a'];
+const DEFAULT_COLORS={hair:'#5a3825',hats:'#ef476f',glasses:'#2d2f3e',tops:'#7c5cff',bottoms:'#118ab2',dresses:'#ef476f',shoes:'#ffffff',extras:'#ffd166'};
+
+/* ---------- drawing helpers ---------- */
+let SKIN='#f1c5a3';
+function shade(hex,a){
+  const n=parseInt(hex.slice(1),16);
+  let r=n>>16,g=(n>>8)&255,b=n&255;
+  const t=a<0?0:255,p=Math.abs(a);
+  r=Math.round((t-r)*p+r); g=Math.round((t-g)*p+g); b=Math.round((t-b)*p+b);
+  return '#'+((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1);
+}
+const mirror=s=>`<g>${s}</g><g transform="translate(300 0) scale(-1 1)">${s}</g>`;
+const sparkle=(x,y)=>`<path d="M${x} ${y-5}V${y+5}M${x-5} ${y}H${x+5}" stroke="#fff" stroke-width="1.8" stroke-linecap="round" opacity=".9"/>`;
+
+const TORSO='M106 152 Q150 142 194 152 L184 292 L116 292 Z';
+const PANTS='M113 286 L187 286 L191 324 L184 502 L154 502 L152 345 L148 345 L146 502 L116 502 L109 324Z';
+const SHORTS='M113 286 L187 286 L191 324 L187 406 L154 406 L152 346 L148 346 L146 406 L113 406 L109 324Z';
+const neck=()=>`<ellipse cx="150" cy="148" rx="16" ry="8" fill="${SKIN}"/>`;
+
+function body(skin){
+  const sd=shade(skin,-.14);
+  return `
+  ${mirror(`<path d="M112 316 L150 316 L146 504 L118 504Z" fill="${skin}"/>
+    <ellipse cx="131" cy="513" rx="18" ry="11" fill="${skin}"/>
+    <line x1="108" y1="162" x2="82" y2="292" stroke="${skin}" stroke-width="22" stroke-linecap="round"/>
+    <circle cx="80" cy="302" r="11" fill="${skin}"/>
+    <circle cx="113" cy="92" r="8" fill="${sd}"/>`)}
+  <rect x="139" y="116" width="22" height="42" fill="${skin}"/>
+  <path d="M106 152 Q150 142 194 152 L184 290 Q194 305 192 322 L108 322 Q106 305 116 290 Z" fill="${skin}"/>
+  <ellipse cx="150" cy="130" rx="21" ry="9" fill="${sd}" opacity=".55"/>
+  <ellipse cx="150" cy="86" rx="38" ry="44" fill="${skin}"/>
+  ${mirror(`<ellipse cx="136" cy="89" rx="4.2" ry="5.6" fill="#2a2233"/><circle cx="137.6" cy="87" r="1.5" fill="#fff"/>
+    <path d="M127 78 Q136 72 144 77" stroke="#3a2c2a" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+    <circle cx="124" cy="104" r="6" fill="#ff8fa3" opacity=".35"/>`)}
+  <path d="M150 93 Q146 101 150 102" stroke="${sd}" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+  <path d="M139 110 Q150 120 161 110" stroke="#9c3d4e" stroke-width="3" fill="none" stroke-linecap="round"/>`;
+}
+const basicTop=()=>`<path d="M122 152 L134 152 Q150 170 166 152 L178 152 L184 290 L116 290Z" fill="#e7e4f1"/><path d="M116 282H184" stroke="#cfcbe0" stroke-width="2"/>`;
+const basicBottom=()=>`<path d="M114 284 L186 284 L192 322 L190 352 L152 352 L150 336 L148 352 L110 352 L108 322 Z" fill="#8e92a8"/><path d="M114 292H186" stroke="#767a91" stroke-width="2"/>`;
+
+/* ---------- catalog ---------- */
+const shortSleeve=c=>`<path d="M118 150 L98 152 Q86 158 83 214 L111 220 Z" fill="${c}"/>`;
+const longSleeve=(c,d)=>`<path d="M118 150 L98 152 Q84 160 70 290 L96 295 L115 195 Z" fill="${c}"/><path d="M69 281 L95 287 L96 296 L70 290Z" fill="${d}"/>`;
+const capHair=c=>`<path d="M110 90 Q104 42 150 38 Q196 42 190 90 Q186 66 166 58 Q150 70 130 58 Q114 66 110 90Z" fill="${c}"/><path d="M127 50 Q150 40 173 50" stroke="${shade(c,.3)}" stroke-width="4" fill="none" stroke-linecap="round" opacity=".55"/>`;
+
+const CATS=[
+ {key:'tops',label:'Tops',palette:CLOTHC,view:[50,120,200,200],items:[
+  {id:'tee',name:'T-shirt',art:(c)=>{const d=shade(c,-.25);return `<path d="${TORSO}" fill="${c}"/>${mirror(shortSleeve(c))}<path d="M116 282H184" stroke="${d}" stroke-width="2" opacity=".5"/>${neck()}`;}},
+  {id:'tank',name:'Tank top',art:(c)=>`<path d="M122 152 L134 152 Q150 176 166 152 L178 152 L184 292 L116 292Z" fill="${c}"/><path d="M116 284H184" stroke="${shade(c,-.25)}" stroke-width="2" opacity=".5"/>`},
+  {id:'crop',name:'Crop top',art:(c)=>`<path d="M122 154 L134 154 Q150 172 166 154 L178 154 L177 238 Q150 246 123 238Z" fill="${c}"/><path d="M123 230 Q150 238 177 230" stroke="${shade(c,-.25)}" stroke-width="2" fill="none" opacity=".6"/>`},
+  {id:'hoodie',name:'Hoodie',art:(c)=>{const d=shade(c,-.22);return `<path d="${TORSO}" fill="${c}"/>${mirror(longSleeve(c,d))}<path d="M118 146 Q150 130 182 146 Q196 168 178 176 Q150 188 122 176 Q104 168 118 146Z" fill="${d}"/><ellipse cx="150" cy="154" rx="13" ry="9" fill="${SKIN}"/><path d="M127 238 H173 L180 280 H120Z" fill="${d}" opacity=".7"/><path d="M141 172 L139 214M159 172 L161 214" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/>`;}},
+  {id:'sweater',name:'Knit sweater',art:(c)=>{const d=shade(c,-.22);return `<path d="${TORSO}" fill="${c}"/>${mirror(longSleeve(c,d))}<path d="M116 280 H184 V292 H116Z" fill="${d}"/><path d="M130 162V276M150 160V276M170 162V276" stroke="${d}" stroke-width="2" opacity=".35"/><rect x="133" y="120" width="34" height="34" rx="9" fill="${c}"/><path d="M133 132H167M133 142H167" stroke="${d}" stroke-width="2" opacity=".5"/>`;}}
+ ]},
+ {key:'bottoms',label:'Bottoms',palette:CLOTHC,view:[50,282,200,230],items:[
+  {id:'jeans',name:'Jeans',art:(c)=>{const d=shade(c,-.25);return `<path d="${PANTS}" fill="${c}"/><path d="M113 286H187V298H113Z" fill="${d}"/><path d="M150 298V345" stroke="${d}" stroke-width="2"/><circle cx="150" cy="292" r="3.5" fill="#ffd166"/>${mirror(`<path d="M120 302 Q128 322 141 302" stroke="${d}" stroke-width="2" fill="none"/><path d="M119 494H145" stroke="${d}" stroke-width="2" stroke-dasharray="4 3"/>`)}`;}},
+  {id:'sweats',name:'Sweatpants',art:(c)=>{const d=shade(c,-.25);return `<path d="${PANTS}" fill="${c}"/><path d="M113 286H187V296H113Z" fill="${d}"/>${mirror(`<path d="M113 306 L119 486" stroke="#fff" stroke-width="3" opacity=".85"/><path d="M115 484 L148 484 L146 503 L116 503Z" fill="${d}"/>`)}<path d="M143 292 L140 312M157 292 L160 312" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/>`;}},
+  {id:'shorts',name:'Shorts',art:(c)=>{const d=shade(c,-.25);return `<path d="${SHORTS}" fill="${c}"/><path d="M113 286H187V297H113Z" fill="${d}"/>${mirror(`<path d="M113 398 H146" stroke="${d}" stroke-width="2" stroke-dasharray="4 3"/>`)}`;}},
+  {id:'mini',name:'Mini skirt',art:(c)=>{const d=shade(c,-.22);return `<path d="M114 286 L186 286 L206 384 Q150 394 94 384Z" fill="${c}"/><path d="M114 286H186V297H114Z" fill="${d}"/><path d="M132 298 L124 388M150 298V392M168 298 L176 388" stroke="${d}" stroke-width="2" opacity=".45"/>`;}},
+  {id:'maxi',name:'Long skirt',art:(c)=>{const d=shade(c,-.22);return `<path d="M114 286 L186 286 L228 498 Q150 514 72 498Z" fill="${c}"/><path d="M114 286H186V298H114Z" fill="${d}"/><path d="M130 300 L108 498M150 300V508M170 300 L192 498" stroke="${d}" stroke-width="2" opacity=".35"/>`;}}
+ ]},
+ {key:'dresses',label:'Dresses',palette:CLOTHC,view:[20,140,260,380],items:[
+  {id:'sun',name:'Sundress',art:(c)=>{const d=shade(c,-.22);return `<path d="M124 154 L134 154 Q150 172 166 154 L176 154 L184 252 L228 440 Q150 458 72 440 L116 252Z" fill="${c}"/><path d="M116 246H184L186 262H114Z" fill="${d}"/><g fill="#fff" opacity=".6"><circle cx="112" cy="330" r="3.5"/><circle cx="150" cy="352" r="3.5"/><circle cx="188" cy="330" r="3.5"/><circle cx="128" cy="398" r="3.5"/><circle cx="172" cy="398" r="3.5"/><circle cx="96" cy="420" r="3.5"/><circle cx="204" cy="420" r="3.5"/><circle cx="150" cy="300" r="3.5"/></g><path d="M74 438 Q150 456 226 438" stroke="${d}" stroke-width="3" fill="none"/>`;}},
+  {id:'gown',name:'Evening gown',art:(c)=>{const d=shade(c,-.22);return `<path d="M122 154 L134 154 Q150 176 166 154 L178 154 L184 258 Q196 400 214 506 Q150 520 86 506 Q104 400 116 258Z" fill="${c}"/><path d="M116 252H184L185 266H115Z" fill="${d}"/>${sparkle(132,200)}${sparkle(168,190)}${sparkle(150,236)}${sparkle(130,310)}${sparkle(172,340)}${sparkle(142,400)}${sparkle(166,452)}${sparkle(120,470)}<path d="M86 504 Q150 520 214 504" stroke="${d}" stroke-width="3" fill="none"/>`;}},
+  {id:'ball',name:'Ball gown',art:(c)=>{const d=shade(c,-.22);return `<path d="M122 154 L134 154 Q150 176 166 154 L178 154 L184 250 L270 500 Q150 522 30 500 L116 250Z" fill="${c}"/><path d="M116 244H184L186 260H114Z" fill="${d}"/><path d="M116 262 Q70 390 56 484M184 262 Q230 390 244 484M150 270V510M134 268 Q120 390 96 498M166 268 Q180 390 204 498" stroke="${d}" stroke-width="2.2" fill="none" opacity=".4"/>${mirror(`<ellipse cx="100" cy="170" rx="17" ry="14" fill="${c}"/><path d="M88 180 Q94 190 112 188" stroke="${d}" stroke-width="2" fill="none"/>`)}${sparkle(100,360)}${sparkle(200,372)}${sparkle(70,450)}${sparkle(228,452)}`;}},
+  {id:'jump',name:'Jumpsuit',art:(c)=>{const d=shade(c,-.22);return `<path d="M124 154 L134 154 Q150 172 166 154 L176 154 L184 290 L116 290Z" fill="${c}"/><path d="M113 286 L187 286 L191 324 L196 502 L152 502 L150 345 L150 345 L148 502 L104 502 L109 324Z" fill="${c}"/><path d="M114 280H186V294H114Z" fill="${d}"/><circle cx="150" cy="287" r="4" fill="#ffd166"/><path d="M150 296V345" stroke="${d}" stroke-width="2"/>`;}}
+ ]},
+ {key:'shoes',label:'Shoes',palette:CLOTHC,view:[70,430,160,115],items:[
+  {id:'sneak',name:'Sneakers',art:(c)=>{const d=shade(c,-.35);return mirror(`<path d="M112 492 L146 492 L152 514 Q154 521 146 522 L112 522 Q106 520 108 512Z" fill="${c}"/><path d="M122 498H140M121 504H141M120 510H142" stroke="${d}" stroke-width="2.5" stroke-linecap="round"/><path d="M108 512 Q130 506 152 514" stroke="${d}" stroke-width="2" fill="none"/><rect x="105" y="520" width="50" height="8" rx="4" fill="#fff" stroke="${d}" stroke-width="1.5"/>`);}},
+  {id:'boots',name:'Boots',art:(c)=>{const d=shade(c,-.3);return mirror(`<path d="M112 440 L150 440 L148 500 Q160 506 158 520 Q156 527 146 527 L110 527 Q104 524 106 514 Q108 506 114 502Z" fill="${c}"/><rect x="112" y="440" width="38" height="10" fill="${shade(c,.25)}"/><rect x="105" y="524" width="53" height="6" rx="3" fill="${d}"/>`);}},
+  {id:'heels',name:'Heels',art:(c)=>{const d=shade(c,-.3);return mirror(`<path d="M114 498 L148 498 Q151 508 150 514 Q138 523 122 521 Q112 519 114 498Z" fill="${c}"/><path d="M115 504 Q131 510 148 504" stroke="${d}" stroke-width="2" fill="none"/><rect x="127" y="520" width="8" height="15" rx="2" fill="${d}"/>`);}},
+  {id:'sandals',name:'Sandals',art:(c)=>{const d=shade(c,-.3);return mirror(`<rect x="108" y="522" width="46" height="6" rx="3" fill="${d}"/><rect x="112" y="504" width="38" height="5" rx="2" fill="${c}"/><rect x="112" y="514" width="38" height="5" rx="2" fill="${c}"/><path d="M118 496H144" stroke="${c}" stroke-width="5" stroke-linecap="round"/>`);}}
+ ]},
+ {key:'hair',label:'Hair',palette:HAIRC,view:[56,0,188,188],items:[
+  {id:'short',name:'Short',art:c=>capHair(c)},
+  {id:'bob',name:'Bob',back:c=>`<path d="M108 70 Q106 36 150 34 Q194 36 192 70 L198 140 Q150 156 102 140Z" fill="${c}"/>`,art:c=>capHair(c)+mirror(`<path d="M110 90 Q106 122 112 138 Q124 136 126 120 L124 84Z" fill="${c}"/>`)},
+  {id:'long',name:'Long',back:c=>`<path d="M106 70 Q104 36 150 34 Q196 36 194 70 L206 250 Q150 266 94 250Z" fill="${c}"/>`,art:c=>capHair(c)+mirror(`<path d="M111 90 L104 215 Q116 226 128 212 L126 98Z" fill="${c}"/>`)},
+  {id:'pony',name:'Ponytail',back:c=>`<path d="M184 60 Q238 60 234 132 Q230 180 206 198 Q216 142 190 104Z" fill="${c}"/>`,art:c=>capHair(c)+`<ellipse cx="190" cy="66" rx="6" ry="8" fill="${shade(c,-.35)}"/>`},
+  {id:'pig',name:'Pigtails',back:c=>mirror(`<path d="M112 62 Q66 70 72 132 Q76 172 98 190 Q90 142 118 100Z" fill="${c}"/>`),art:c=>capHair(c)+mirror(`<ellipse cx="108" cy="72" rx="6" ry="8" fill="${shade(c,-.35)}"/>`)},
+  {id:'bun',name:'Top bun',art:c=>`<circle cx="150" cy="30" r="19" fill="${c}"/><rect x="137" y="42" width="26" height="6" rx="3" fill="${shade(c,-.35)}"/>`+capHair(c)},
+  {id:'afro',name:'Curly',back:c=>`<circle cx="150" cy="70" r="64" fill="${c}"/>`,art:c=>capHair(c)}
+ ]},
+ {key:'hats',label:'Hats',palette:CLOTHC,view:[50,-20,200,200],items:[
+  {id:'beanie',name:'Beanie',art:c=>`<path d="M108 72 Q106 24 150 22 Q194 24 192 72Z" fill="${c}"/><rect x="104" y="62" width="92" height="18" rx="8" fill="${shade(c,-.22)}"/><path d="M118 64v14M130 64v14M142 64v14M154 64v14M166 64v14M178 64v14" stroke="${shade(c,.3)}" stroke-width="2" opacity=".5"/><circle cx="150" cy="18" r="10" fill="${shade(c,.3)}"/>`},
+  {id:'cap',name:'Cap',art:c=>`<path d="M110 68 Q108 30 150 28 Q192 30 190 68Z" fill="${c}"/><path d="M100 68 Q150 56 200 68 Q210 76 196 80 Q150 70 104 80 Q90 76 100 68Z" fill="${shade(c,-.25)}"/><circle cx="150" cy="29" r="4" fill="${shade(c,-.25)}"/>`},
+  {id:'sun',name:'Sun hat',art:c=>`<ellipse cx="150" cy="56" rx="92" ry="15" fill="${c}"/><path d="M114 56 Q112 18 150 16 Q188 18 186 56Z" fill="${c}"/><path d="M113 46 Q150 56 187 46 L186 56 Q150 66 114 56Z" fill="${shade(c,-.28)}"/><path d="M70 56 Q150 74 230 56" stroke="${shade(c,-.15)}" stroke-width="2" fill="none" opacity=".6"/>`},
+  {id:'crown',name:'Crown',art:c=>`<path d="M114 58 L108 22 L130 40 L150 14 L170 40 L192 22 L186 58Z" fill="${c}"/><rect x="114" y="50" width="72" height="9" fill="${shade(c,-.25)}"/><circle cx="150" cy="38" r="4.5" fill="#ef476f"/><circle cx="132" cy="54" r="3" fill="#06d6a0"/><circle cx="168" cy="54" r="3" fill="#118ab2"/>`},
+  {id:'bow',name:'Hair bow',art:c=>`<path d="M172 48 L146 34 L146 62Z" fill="${c}"/><path d="M172 48 L198 34 L198 62Z" fill="${c}"/><circle cx="172" cy="48" r="7" fill="${shade(c,-.25)}"/>`},
+  {id:'cat',name:'Cat ears',art:c=>`<path d="M112 64 Q150 26 188 64" stroke="${c}" stroke-width="7" fill="none" stroke-linecap="round"/>${mirror(`<path d="M112 56 L108 16 L138 38Z" fill="${c}"/><path d="M116 46 L114 27 L128 38Z" fill="#ffb3c7"/>`)}`}
+ ]},
+ {key:'glasses',label:'Glasses',palette:CLOTHC,view:[88,40,124,124],items:[
+  {id:'round',name:'Round',art:c=>`<g fill="#fff" fill-opacity=".18" stroke="${c}" stroke-width="3"><circle cx="136" cy="89" r="12"/><circle cx="164" cy="89" r="12"/></g><path d="M148 87 Q150 84 152 87M124 86 L112 84M176 86 L188 84" stroke="${c}" stroke-width="3" fill="none" stroke-linecap="round"/>`},
+  {id:'shades',name:'Shades',art:c=>`<g fill="#1d1b2a" stroke="${c}" stroke-width="3"><rect x="122" y="78" width="27" height="20" rx="7"/><rect x="151" y="78" width="27" height="20" rx="7"/></g><path d="M149 84H151M122 82 L112 80M178 82 L188 80" stroke="${c}" stroke-width="3" stroke-linecap="round"/><path d="M127 83 L134 83M156 83 L163 83" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".5"/>`},
+  {id:'heart',name:'Hearts',art:c=>mirror(`<path transform="translate(136 88)" d="M0 9 C-19 -4 -11 -19 0 -10 C11 -19 19 -4 0 9Z" fill="${c}" stroke="${shade(c,-.3)}" stroke-width="2"/>`)+`<path d="M146 86 L154 86" stroke="${shade(c,-.3)}" stroke-width="3"/>`}
+ ]},
+ {key:'extras',label:'Extras',palette:CLOTHC,view:[10,100,280,300],items:[
+  {id:'scarf',name:'Scarf',art:c=>`<path d="M126 126 Q150 142 174 126 L178 148 Q150 164 122 148Z" fill="${c}"/><path d="M156 150 L178 146 L184 228 L160 224Z" fill="${shade(c,-.2)}"/><path d="M158 182 L182 178M159 202 L183 198" stroke="${shade(c,.35)}" stroke-width="3" opacity=".7"/>`},
+  {id:'pearls',name:'Necklace',art:c=>{let s='';for(let i=0;i<=12;i++){const t=i/12;s+=`<circle cx="${(126+48*t).toFixed(1)}" cy="${(134+28*Math.sin(Math.PI*t)).toFixed(1)}" r="4" fill="${c}" stroke="${shade(c,-.3)}" stroke-width="1"/>`;}return s;}},
+  {id:'cape',name:'Cape',back:c=>`<path d="M112 146 L188 146 L236 410 Q150 430 64 410Z" fill="${c}"/><path d="M112 146 L188 146 L180 160 L120 160Z" fill="${shade(c,-.25)}"/>`,art:c=>`<circle cx="132" cy="152" r="5" fill="#ffd166"/><circle cx="168" cy="152" r="5" fill="#ffd166"/><path d="M132 152 Q150 162 168 152" stroke="#ffd166" stroke-width="2.5" fill="none"/>`},
+  {id:'wings',name:'Wings',back:c=>mirror(`<path d="M110 168 Q40 90 14 130 Q34 138 24 164 Q50 160 44 196 Q78 190 76 226 Q104 216 112 200Z" fill="${c}"/><path d="M104 176 Q60 130 34 142M100 190 Q62 168 44 176M100 204 Q76 196 66 206" stroke="${shade(c,-.25)}" stroke-width="2" fill="none" opacity=".6"/>`)}
+ ]}
+];
+const ITEMS={};
+CATS.forEach(c=>{ITEMS[c.key]={};c.items.forEach(i=>{ITEMS[c.key][i.id]=i;});});
+
+/* ---------- compose a figure ---------- */
+function figure(sel,colors,skin){
+  SKIN=skin;
+  const it=k=>sel[k]?ITEMS[k][sel[k]]:null;
+  const hair=it('hair'),hat=it('hats'),gl=it('glasses'),top=it('tops'),bot=it('bottoms'),dr=it('dresses'),sh=it('shoes'),ex=it('extras');
+  let o='';
+  if(hair&&hair.back) o+=hair.back(colors.hair);
+  if(ex&&ex.back) o+=ex.back(colors.extras);
+  o+=body(skin);
+  if(!dr){ if(!top) o+=basicTop(); if(!bot) o+=basicBottom(); }
+  if(sh) o+=sh.art(colors.shoes);
+  if(bot&&!dr) o+=bot.art(colors.bottoms);
+  if(top&&!dr) o+=top.art(colors.tops);
+  if(dr) o+=dr.art(colors.dresses);
+  if(ex&&ex.art) o+=ex.art(colors.extras);
+  if(hair) o+=hair.art(colors.hair);
+  if(gl) o+=gl.art(colors.glasses);
+  if(hat) o+=hat.art(colors.hats);
+  return o;
+}
+
+/* ---------- state ---------- */
+const KEY='dressup-studio-v1';
+const defaults=()=>({skin:1,bg:0,sel:{hair:'short',hats:null,glasses:null,tops:null,bottoms:null,dresses:null,shoes:null,extras:null},colors:Object.assign({},DEFAULT_COLORS)});
+let S=defaults();
+let tab='tops';
+
+function load(){
+  try{
+    const raw=localStorage.getItem(KEY); if(!raw) return;
+    const p=JSON.parse(raw), d=defaults();
+    if(Number.isInteger(p.skin)&&p.skin>=0&&p.skin<SKINS.length) d.skin=p.skin;
+    if(Number.isInteger(p.bg)&&p.bg>=0&&p.bg<BACKDROPS.length) d.bg=p.bg;
+    CATS.forEach(c=>{
+      const id=p.sel&&p.sel[c.key];
+      d.sel[c.key]=(id&&ITEMS[c.key][id])?id:(id===null?null:d.sel[c.key]);
+      const col=p.colors&&p.colors[c.key];
+      if(typeof col==='string'&&/^#[0-9a-f]{6}$/i.test(col)) d.colors[c.key]=col;
+    });
+    S=d;
+  }catch(e){}
+}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+
+/* ---------- rendering ---------- */
+const $=id=>document.getElementById(id);
+const fig=$('fig'),stage=$('stage'),panel=$('panel'),tabsEl=$('tabs'),colorsEl=$('colors'),hint=$('hint'),status=$('status');
+
+function renderStage(){
+  fig.innerHTML=figure(S.sel,S.colors,SKINS[S.skin]);
+  stage.style.setProperty('--stage',BACKDROPS[S.bg]);
+  stage.style.background=BACKDROPS[S.bg];
+}
+function describe(){
+  const worn=[];
+  CATS.forEach(c=>{const id=S.sel[c.key]; if(id) worn.push(ITEMS[c.key][id].name.toLowerCase()+(c.key==='hair'?' hair':''));});
+  return worn.length?'Wearing: '+worn.join(', ')+'.':'Basic outfit.';
+}
+function announce(){const t=describe();hint.textContent=t;status.textContent=t;}
+
+function buildTabs(){
+  const labels=CATS.map(c=>({key:c.key,label:c.label})).concat([{key:'look',label:'Look'}]);
+  tabsEl.innerHTML=labels.map(t=>`<button class="tab" role="tab" id="tab-${t.key}" data-tab="${t.key}" aria-selected="${t.key===tab}" tabindex="${t.key===tab?0:-1}">${t.label}</button>`).join('');
+}
+function buildPanel(){
+  if(tab==='look'){
+    panel.innerHTML=`<div class="look-block"><span class="label">Skin tone</span><div class="swatches">${SKINS.map((s,i)=>`<button class="sw big" data-skin="${i}" style="background:${s}" aria-label="Skin tone ${i+1}" aria-pressed="${i===S.skin}"></button>`).join('')}</div></div>
+    <div class="look-block"><span class="label">Backdrop</span><div class="swatches">${BACKDROPS.map((b,i)=>`<button class="sw bg" data-bg="${i}" style="background:${b}" aria-label="Backdrop ${i+1}" aria-pressed="${i===S.bg}"></button>`).join('')}</div></div>`;
+    colorsEl.hidden=true;
+    return;
+  }
+  const cat=CATS.find(c=>c.key===tab);
+  const [x,y,w,h]=cat.view, ar=`${w} / ${h}`;
+  const tiles=[`<button class="tile none" data-id="" aria-pressed="${!S.sel[cat.key]}" style="--ar:${ar}"><span class="blank">&#8856;</span><span class="nm">None</span></button>`];
+  cat.items.forEach(item=>{
+    const sel={[cat.key]:item.id};
+    const svg=`<svg viewBox="${x} ${y} ${w} ${h}" style="--ar:${ar}" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${figure(sel,S.colors,SKINS[S.skin])}</svg>`;
+    tiles.push(`<button class="tile" data-id="${item.id}" aria-pressed="${S.sel[cat.key]===item.id}" aria-label="${item.name}">${svg}<span class="nm">${item.name}</span></button>`);
+  });
+  panel.innerHTML=`<div class="grid">${tiles.join('')}</div>`;
+  buildColors(cat);
+}
+function buildColors(cat){
+  colorsEl.hidden=false;
+  colorsEl.innerHTML=`<span class="label">Color</span><div class="swatches">${cat.palette.map(c=>`<button class="sw" data-color="${c}" style="background:${c}" aria-label="Color ${c}" aria-pressed="${S.colors[cat.key].toLowerCase()===c}"></button>`).join('')}</div>`;
+}
+function refreshPressed(){
+  panel.querySelectorAll('.tile').forEach(t=>{
+    t.setAttribute('aria-pressed',String((t.dataset.id||null)===(S.sel[tab]||null)));
+  });
+}
+
+/* ---------- actions ---------- */
+function choose(cat,id){
+  const next=(id&&S.sel[cat]!==id)?id:null;
+  S.sel[cat]=next;
+  if(next&&cat==='dresses'){S.sel.tops=null;S.sel.bottoms=null;}
+  if(next&&(cat==='tops'||cat==='bottoms')) S.sel.dresses=null;
+  renderStage(); refreshPressed(); announce(); save();
+}
+function setTab(k){
+  tab=k; buildTabs(); buildPanel(); panel.scrollTop=0;
+  panel.setAttribute('aria-labelledby','tab-'+k);
+}
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+function randomize(){
+  const s=defaults().sel;
+  s.hair=pick(CATS.find(c=>c.key==='hair').items).id;
+  S.colors.hair=pick(HAIRC);
+  if(Math.random()<.32){
+    s.dresses=pick(CATS.find(c=>c.key==='dresses').items).id; S.colors.dresses=pick(CLOTHC);
+  }else{
+    s.tops=pick(CATS.find(c=>c.key==='tops').items).id; S.colors.tops=pick(CLOTHC);
+    s.bottoms=pick(CATS.find(c=>c.key==='bottoms').items).id; S.colors.bottoms=pick(CLOTHC);
+  }
+  if(Math.random()<.85){s.shoes=pick(CATS.find(c=>c.key==='shoes').items).id;S.colors.shoes=pick(CLOTHC);}
+  if(Math.random()<.45){s.hats=pick(CATS.find(c=>c.key==='hats').items).id;S.colors.hats=pick(CLOTHC);}
+  if(Math.random()<.35){s.glasses=pick(CATS.find(c=>c.key==='glasses').items).id;S.colors.glasses=pick(CLOTHC);}
+  if(Math.random()<.35){s.extras=pick(CATS.find(c=>c.key==='extras').items).id;S.colors.extras=pick(CLOTHC);}
+  S.sel=s;
+  renderStage(); buildPanel(); announce(); save();
+}
+
+tabsEl.addEventListener('click',e=>{const b=e.target.closest('[data-tab]'); if(b) setTab(b.dataset.tab);});
+tabsEl.addEventListener('keydown',e=>{
+  if(e.key!=='ArrowRight'&&e.key!=='ArrowLeft') return;
+  const keys=CATS.map(c=>c.key).concat(['look']);
+  const i=keys.indexOf(tab), n=(i+(e.key==='ArrowRight'?1:-1)+keys.length)%keys.length;
+  setTab(keys[n]); const t=$('tab-'+keys[n]); if(t) t.focus();
+});
+panel.addEventListener('click',e=>{
+  const t=e.target.closest('.tile');
+  if(t){choose(tab,t.dataset.id);return;}
+  const sk=e.target.closest('[data-skin]');
+  if(sk){S.skin=+sk.dataset.skin;renderStage();buildPanel();save();return;}
+  const bg=e.target.closest('[data-bg]');
+  if(bg){S.bg=+bg.dataset.bg;renderStage();buildPanel();save();}
+});
+colorsEl.addEventListener('click',e=>{
+  const b=e.target.closest('[data-color]'); if(!b) return;
+  S.colors[tab]=b.dataset.color;
+  renderStage(); buildPanel(); save();
+});
+$('random').addEventListener('click',randomize);
+$('reset').addEventListener('click',()=>{S=defaults();renderStage();buildPanel();announce();save();});
+
+/* ---------- boot ---------- */
+load();
+renderStage(); buildTabs(); buildPanel(); announce();
+
+/* test hook (used by automated checks) */
+window.__dressup={CATS,ITEMS,figure,SKINS,COLORS:CLOTHC};
+})();
+</script>
+
+</html>
